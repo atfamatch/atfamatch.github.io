@@ -436,6 +436,10 @@ details.more>summary{cursor:pointer;color:var(--tx2);font-size:13px;margin:10px 
 .screen{height:100dvh}
 .m-only{display:none!important}
 #overlay.drawing{touch-action:none}
+/* herramientas de dibujo minimizadas: solo una barrita */
+.draw-toolbar.min>*:not(.props){display:none!important}
+.draw-toolbar.min .props{font-size:0}.draw-toolbar.min .props button{font-size:13px}
+.draw-toolbar.min .props>*:not(#dwMin):not(#dwSave):not(#dwUndo):not(#dwClose){display:none!important}
 body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setExpReset,body.nodir #bkDir,body.nodir #bkNow,body.web #btnBanco,body.web #btnChat,body.web .no-web{display:none!important}
 @media (max-width:760px){
   body{-webkit-text-size-adjust:100%}
@@ -495,6 +499,12 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
   .draw-toolbar.show{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:48dvh;max-width:none;border-radius:12px 12px 0 0;z-index:60;box-shadow:0 -8px 24px #000a;background:var(--bg2)}
   .draw-toolbar .tiny{display:none}
   .draw-toolbar .tools button{width:40px;height:38px}
+  /* video grande: sin paneles */
+  body.m-big .an-side,body.m-big .timeline{display:none!important}
+  body.m-big .an-left,body.m-big .video-area{flex:1}
+  body.m-big .video-main{flex:1;aspect-ratio:auto}
+  .draw-toolbar.min.show{top:auto;bottom:62px;left:auto;right:8px;width:auto;max-height:none;border-radius:10px;padding:5px}
+
   /* propiedades del partido */
   .pp-body{padding:8px}
   .pp-top{grid-template-columns:1fr!important}
@@ -514,6 +524,7 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
 }
 /* celular acostado: vídeo a la izquierda, botonera a la derecha */
 @media (max-height:520px) and (orientation:landscape){
+  .m-only{display:inline-flex!important}
   .topnav{padding:4px 8px}
   .an-top{padding:2px 6px;flex-wrap:nowrap;overflow-x:auto}
   .an-top .an-title{display:none}
@@ -527,6 +538,9 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
   .video-thumbs{height:50px}
   .draw-toolbar.show{position:fixed;top:0;right:0;bottom:0;left:auto;width:42vw;max-width:none;max-height:none;border-radius:0;z-index:60;box-shadow:-8px 0 24px #000a;background:var(--bg2)}
   .draw-toolbar .tiny{display:none}
+  body.m-big .an-side,body.m-big .timeline,body.m-big .an-top{display:none!important}
+  .draw-toolbar.min.show{top:auto;bottom:52px;left:auto;right:8px;width:auto;border-radius:10px;padding:5px}
+  body.m-big .draw-toolbar.show:not(.min){width:46vw}
   .modal-bg{padding:0}
   .modal,.modal.wide,.modal.narrow{max-height:100dvh;border-radius:0}
 }
@@ -635,6 +649,7 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
           <button data-c="shots" id="btnShots" title="Detectar y saltar repeticiones y cortes de cámara">✂ Repeticiones</button>
           <button class="adv" data-c="snapshot" title="Guardar captura (PNG)">📷</button>
           <button data-c="fullscreen" title="Pantalla completa">⛶</button>
+          <button data-c="big" class="m-only" id="btnBig" title="Video grande: oculta los paneles">⤢ Grande</button>
           <button data-c="tl" class="m-only" title="Mostrar u ocultar la línea de tiempo">📈 Línea</button>
           <button data-c="more" class="simple-only" title="Más controles">⋯</button>
           <span class="live-ctl" id="liveCtl"></span>
@@ -2657,7 +2672,7 @@ function imgFor(src) { if (!IMG_CACHE[src]) { const i = new Image(); i.src = src
 
 function buildDrawToolbar() {
   const tb = $('#drawToolbar');
-  tb.innerHTML = `<div class="props"><button class="small primary" id="dwSave">💾 Guardar dibujo</button><span>Duración <input type="number" id="dwDur" min="0.5" step="0.5" value="${DRAW.duration}"> s</span><button class="small" id="dwUndo" title="Ctrl+Z">↶</button><button class="small" id="dwRedo" title="Ctrl+Y">↷</button><button class="small" id="dwClear">Limpiar</button><button class="small" id="dwPng">📷 PNG</button><button class="small" id="dwClose">Cerrar</button><span class="tiny">Ctrl+S guarda</span><button class="small help-q" data-help="dibujar">❓ Guía</button></div>
+  tb.innerHTML = `<div class="props"><button class="small m-only" id="dwMin" title="Ocultar o mostrar las herramientas">▾ Ocultar</button><button class="small primary" id="dwSave">💾 Guardar dibujo</button><span>Duración <input type="number" id="dwDur" min="0.5" step="0.5" value="${DRAW.duration}"> s</span><button class="small" id="dwUndo" title="Ctrl+Z">↶</button><button class="small" id="dwRedo" title="Ctrl+Y">↷</button><button class="small" id="dwClear">Limpiar</button><button class="small" id="dwPng">📷 PNG</button><button class="small" id="dwClose">Cerrar</button><span class="tiny">Ctrl+S guarda</span><button class="small help-q" data-help="dibujar">❓ Guía</button></div>
   <div class="tools">${TOOLS.map(([k, ic, t]) => `<button data-tool="${k}" title="${t}" class="${DRAW.tool === k ? 'on' : ''}">${ic}</button>`).join('')}</div>
   <div class="props">${SWATCHES.map(c => `<span data-sw="${c}" style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${c};border:2px solid ${DRAW.color === c ? '#fff' : '#0006'};cursor:pointer"></span>`).join('')}
     <input type="color" id="dwColor" value="${DRAW.color}"> Grosor <input type="range" id="dwWidth" min="1" max="14" value="${DRAW.width}" style="width:70px">
@@ -2681,6 +2696,7 @@ function buildDrawToolbar() {
   $('#dwClear').onclick = () => { if (!DRAW.shapes.length) return; pushUndo(); DRAW.shapes = []; DRAW.sel = null; drawRedraw(); };
   $('#dwSave').onclick = saveDrawing; $('#dwPng').onclick = () => exportSnapshot(true);
   $('#dwClose').onclick = () => exitDrawMode();
+  $('#dwMin').onclick = () => { const m = tb.classList.toggle('min'); $('#dwMin').textContent = m ? '🎨 Herramientas' : '▾ Ocultar'; };
 }
 function applyStyleToSel() {
   const s = DRAW.shapes[DRAW.sel]; if (!s) return; pushUndo();
@@ -6554,6 +6570,7 @@ function bindUI() {
       case 'banco': bancoDialog(); break;
       case 'chat': chatToggle(); break;
       case 'more': $('#controls').classList.toggle('more'); break;
+      case 'big': { const on = document.body.classList.toggle('m-big'); $('#btnBig').textContent = on ? '⤡ Paneles' : '⤢ Grande'; $('#controls').scrollLeft = 0; setTimeout(() => window.dispatchEvent(new Event('resize')), 50); break; }
       case 'tl': document.body.classList.toggle('m-tl'); setTimeout(() => window.dispatchEvent(new Event('resize')), 50); break;
       case 'fullscreen': { const el = $('#videoArea'); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen && el.requestFullscreen(); break; }
     }
