@@ -435,6 +435,7 @@ details.more>summary{cursor:pointer;color:var(--tx2);font-size:13px;margin:10px 
 /* ================= CELULAR (versión web) ================= */
 .screen{height:100dvh}
 .m-only{display:none!important}
+#overlay.drawing{touch-action:none}
 body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setExpReset,body.nodir #bkDir,body.nodir #bkNow,body.web #btnBanco,body.web #btnChat,body.web .no-web{display:none!important}
 @media (max-width:760px){
   body{-webkit-text-size-adjust:100%}
@@ -490,7 +491,10 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
   .timeline{display:none}
   body.m-tl .timeline{display:flex;height:150px}
   .tl-bar .hint,.tl-bar>span:first-child{display:none}
-  .draw-toolbar{max-width:100%;overflow-x:auto}
+  /* dibujar: las herramientas van abajo, sobre la botonera, y el vídeo queda libre */
+  .draw-toolbar.show{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:48dvh;max-width:none;border-radius:12px 12px 0 0;z-index:60;box-shadow:0 -8px 24px #000a;background:var(--bg2)}
+  .draw-toolbar .tiny{display:none}
+  .draw-toolbar .tools button{width:40px;height:38px}
   /* propiedades del partido */
   .pp-body{padding:8px}
   .pp-top{grid-template-columns:1fr!important}
@@ -521,6 +525,8 @@ body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setE
   .timeline{display:none}
   body.m-tl .timeline{display:flex;height:110px}
   .video-thumbs{height:50px}
+  .draw-toolbar.show{position:fixed;top:0;right:0;bottom:0;left:auto;width:42vw;max-width:none;max-height:none;border-radius:0;z-index:60;box-shadow:-8px 0 24px #000a;background:var(--bg2)}
+  .draw-toolbar .tiny{display:none}
   .modal-bg{padding:0}
   .modal,.modal.wide,.modal.narrow{max-height:100dvh;border-radius:0}
 }
