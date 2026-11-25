@@ -157,6 +157,9 @@ table.grid td.num,table.grid th.num{text-align:right}
 /* dibujo */
 .draw-toolbar{display:none;position:absolute;left:8px;top:8px;z-index:8;max-height:calc(100% - 16px);overflow:auto;background:#11161cf2;border:1px solid var(--line);border-radius:10px;padding:6px;flex-direction:column;gap:6px;max-width:calc(100% - 16px)}
 .draw-toolbar.show{display:flex}
+.draw-toolbar .dt-grip{cursor:move;text-align:center;color:var(--tx3);font-size:11px;letter-spacing:1px;user-select:none;-webkit-user-select:none;touch-action:none;padding:3px 0;margin:-3px -3px 0;border-radius:6px;background:#ffffff0d}
+.draw-toolbar .dt-grip:hover{background:#ffffff1f;color:var(--tx)}
+.draw-toolbar.floating{position:fixed!important;right:auto!important;bottom:auto!important;z-index:70;max-height:80vh!important;width:auto!important;max-width:min(560px,96vw)!important;border-radius:10px!important;box-shadow:0 10px 30px #000c}
 .draw-toolbar .tools{display:flex;flex-wrap:wrap;gap:3px}
 .draw-toolbar .tools button{width:34px;height:32px;padding:0;font-size:15px}
 .draw-toolbar .tools button.on{background:var(--acc);border-color:var(--acc2)}
@@ -437,7 +440,7 @@ details.more>summary{cursor:pointer;color:var(--tx2);font-size:13px;margin:10px 
 .m-only{display:none!important}
 #overlay.drawing{touch-action:none}
 /* herramientas de dibujo minimizadas: solo una barrita */
-.draw-toolbar.min>*:not(.props){display:none!important}
+.draw-toolbar.min>*:not(.props):not(.dt-grip){display:none!important}
 .draw-toolbar.min .props{font-size:0}.draw-toolbar.min .props button{font-size:13px}
 .draw-toolbar.min .props>*:not(#dwMin):not(#dwSave):not(#dwUndo):not(#dwClose){display:none!important}
 body.nodir #rd-pick,body.nodir #rd-reset,body.nodir #setExpPick,body.nodir #setExpReset,body.nodir #bkDir,body.nodir #bkNow,body.web #btnBanco,body.web #btnChat,body.web .no-web{display:none!important}
@@ -2670,9 +2673,29 @@ const SWATCHES = ['#ffeb3b', '#ffffff', '#ff3b30', '#34c759', '#0a84ff', '#ff9f0
 const IMG_CACHE = {};
 function imgFor(src) { if (!IMG_CACHE[src]) { const i = new Image(); i.src = src; IMG_CACHE[src] = i; } return IMG_CACHE[src]; }
 
+/* panel de dibujo flotante: se arrastra desde la barrita de arriba y recuerda dónde lo dejaste */
+function drawTbPlace(tb) {
+  const p = SETTINGS.drawTbPos;
+  if (!p) { tb.classList.remove('floating'); tb.style.left = tb.style.top = ''; return; }
+  tb.classList.add('floating');
+  const w = Math.min(tb.offsetWidth || 300, innerWidth);
+  tb.style.left = Math.round(Math.min(Math.max(0, p.x), innerWidth - w)) + 'px';
+  tb.style.top = Math.round(Math.min(Math.max(0, p.y), innerHeight - 40)) + 'px';
+}
+function drawTbBindGrip(tb) {
+  const g = tb.querySelector('.dt-grip'); if (!g) return;
+  g.onpointerdown = e => {
+    e.preventDefault(); try { g.setPointerCapture(e.pointerId); } catch (x) { }
+    const r = tb.getBoundingClientRect(); const dx = e.clientX - r.left, dy = e.clientY - r.top;
+    g.onpointermove = ev => { SETTINGS.drawTbPos = { x: ev.clientX - dx, y: ev.clientY - dy }; drawTbPlace(tb); };
+    g.onpointerup = g.onpointercancel = () => { g.onpointermove = null; saveSettings(); };
+  };
+  g.ondblclick = () => { SETTINGS.drawTbPos = null; saveSettings(); drawTbPlace(tb); };
+  drawTbPlace(tb);
+}
 function buildDrawToolbar() {
   const tb = $('#drawToolbar');
-  tb.innerHTML = `<div class="props"><button class="small m-only" id="dwMin" title="Ocultar o mostrar las herramientas">▾ Ocultar</button><button class="small primary" id="dwSave">💾 Guardar dibujo</button><span>Duración <input type="number" id="dwDur" min="0.5" step="0.5" value="${DRAW.duration}"> s</span><button class="small" id="dwUndo" title="Ctrl+Z">↶</button><button class="small" id="dwRedo" title="Ctrl+Y">↷</button><button class="small" id="dwClear">Limpiar</button><button class="small" id="dwPng">📷 PNG</button><button class="small" id="dwClose">Cerrar</button><span class="tiny">Ctrl+S guarda</span><button class="small help-q" data-help="dibujar">❓ Guía</button></div>
+  tb.innerHTML = `<div class="dt-grip" title="Arrastrá para mover el panel · doble clic: volver a su lugar">⠿⠿⠿ mover ⠿⠿⠿</div><div class="props"><button class="small m-only" id="dwMin" title="Ocultar o mostrar las herramientas">▾ Ocultar</button><button class="small primary" id="dwSave">💾 Guardar dibujo</button><span>Duración <input type="number" id="dwDur" min="0.5" step="0.5" value="${DRAW.duration}"> s</span><button class="small" id="dwUndo" title="Ctrl+Z">↶</button><button class="small" id="dwRedo" title="Ctrl+Y">↷</button><button class="small" id="dwClear">Limpiar</button><button class="small" id="dwPng">📷 PNG</button><button class="small" id="dwClose">Cerrar</button><span class="tiny">Ctrl+S guarda</span><button class="small help-q" data-help="dibujar">❓ Guía</button></div>
   <div class="tools">${TOOLS.map(([k, ic, t]) => `<button data-tool="${k}" title="${t}" class="${DRAW.tool === k ? 'on' : ''}">${ic}</button>`).join('')}</div>
   <div class="props">${SWATCHES.map(c => `<span data-sw="${c}" style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${c};border:2px solid ${DRAW.color === c ? '#fff' : '#0006'};cursor:pointer"></span>`).join('')}
     <input type="color" id="dwColor" value="${DRAW.color}"> Grosor <input type="range" id="dwWidth" min="1" max="14" value="${DRAW.width}" style="width:70px">
@@ -2680,6 +2703,7 @@ function buildDrawToolbar() {
     Texto <input type="number" id="dwSize" min="10" max="80" value="${DRAW.size}">
   </div>
 `;
+  drawTbBindGrip(tb);
   $$('[data-tool]', tb).forEach(b => b.onclick = async () => {
     finishMulti();
     DRAW.tool = b.dataset.tool; DRAW.sel = null;
