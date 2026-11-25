@@ -3150,10 +3150,12 @@ async function renderDialog(items, name) {
   const hasBoards = items.some(i => { if (i.type !== 'event') return false; const { ev } = resolveItem(i); return ev && ev.boardId && APP.boards.some(b => b.id === ev.boardId); });
   const fmtSel = SETTINGS.renderFormat === 'webm' || !mimes.mp4 ? 'webm' : 'mp4';
   const dirLabel = () => exportDirLabel();
+  const canPickDir = !!window.showDirectoryPicker || await localSrvUp();
   const body = document.createElement('div');
   body.innerHTML = `<div class="form">
     <label>Nombre del archivo</label><input type="text" id="rd-n" value="${esc(name)}">
     <label>Guardar en</label><div class="row"><span id="rd-dir" class="grow" style="padding:6px 8px;background:var(--bg2,#0b0e12);border-radius:6px">${dirLabel()}</span><button class="small primary" id="rd-pick">📁 Elegir carpeta…</button>${EXPORT_DIR ? '<button class="small" id="rd-reset" title="Volver a Descargas">✕</button>' : ''}</div>
+    ${canPickDir ? `<span></span><label class="chk" style="font-size:13px"><input type="checkbox" id="rd-ask" ${SETTINGS.askExportDir === false ? '' : 'checked'}> Preguntar dónde guardar cada vez que exporto</label>` : ''}
     <label>Formato</label><select id="rd-fmt">${mimes.mp4 ? `<option value="mp4" ${fmtSel === 'mp4' ? 'selected' : ''}>MP4 (recomendado, se abre en todos lados)</option>` : ''}${mimes.webm ? `<option value="webm" ${fmtSel === 'webm' ? 'selected' : ''}>WebM</option>` : ''}</select>
     <label>Resolución</label><select id="rd-res">${[[480, '480p (SD)'], [720, '720p (HD)'], [1080, '1080p (Full HD)'], [1440, '1440p (2K)'], [2160, '2160p (4K)']].map(([r, l]) => `<option value="${r}" ${r === SETTINGS.renderRes ? 'selected' : ''}>${l}</option>`).join('')}</select>
     <label>Calidad</label><select id="rd-q">${Object.entries(QUALITY).map(([k, v]) => `<option value="${k}" ${k === (SETTINGS.renderQuality || 'med') ? 'selected' : ''}>${v.label}</option>`).join('')}</select>
@@ -3180,6 +3182,9 @@ async function renderDialog(items, name) {
   const opts = await modal({ title: 'Exportar vídeo', body,
     buttons: [{ label: 'Cancelar' }, { label: '🎬 Exportar', cls: 'primary', onClick: async m => {
       const o = { name: $('#rd-n', m).value || 'video', h: +$('#rd-res', m).value, q: $('#rd-q', m).value, fps: +$('#rd-fps', m).value, fmt: $('#rd-fmt', m).value, split: $('#rd-split', m).value === '1', title: $('#rd-title', m).checked, tpos: ($('[data-tp].on', m) || { dataset: { tp: 'tl' } }).dataset.tp, tsize: +$('#rd-tsize', m).value, tdur: +$('#rd-tdur', m).value, draw: $('#rd-draw', m).checked, notes: $('#rd-notes', m).checked, wm: $('#rd-wm', m).value, audio: $('#rd-audio', m).checked, rate: +$('#rd-rate', m).value, sbs: $('#rd-sbs', m).checked };
+      const ask = $('#rd-ask', m);
+      if (ask) { SETTINGS.askExportDir = ask.checked;
+        if (ask.checked) { const h = await chooseExportDir(); if (!h) { toast('Elegí la carpeta donde guardar el vídeo (o destildá "Preguntar dónde guardar")', 'warn'); return false; } $('#rd-dir', m).innerHTML = dirLabel(); } }
       o.useDir = !!EXPORT_DIR && await exportDirReady(true);
       if (EXPORT_DIR && !o.useDir && !isPathDir(EXPORT_DIR)) toast('Sin permiso para la carpeta: se guardará en Descargas', 'warn');
       Object.assign(SETTINGS, { titlePos: o.tpos, titleSize: o.tsize, titleDur: o.tdur, overlayTitle: o.title, renderRes: o.h, renderQuality: o.q, renderFps: o.fps, renderFormat: o.fmt }); saveSettings();
